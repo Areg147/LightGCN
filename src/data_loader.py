@@ -9,8 +9,9 @@ from collections import defaultdict
 from cppimport import imp_from_filepath
 import tracemalloc
 import warnings
+import sys
 
-
+sys.path.append("src")
 UNIFRORM_SAMPLER_PATH = "src/unifrom_sampling.cpp"
 UNIFORM_SP_MODULE = imp_from_filepath(UNIFRORM_SAMPLER_PATH)
 uniform_sampler:Callable = UNIFORM_SP_MODULE.uniform_sampler
@@ -152,13 +153,3 @@ class RecSysDataset(Dataset):
     
     def __getitem__(self, index:int):
         return self.data[index]
-    
-if __name__ == "__main__":
-    # Do debugging prints here 
-    dataset = RecSysDataset(data_path="/Users/aregpetrosyan/Desktop/areg/LightGCN/data/processed/train.txt",
-                           is_train_data=True,
-                           add_self_loop=False,
-                           neg_per_pos=4)
-    train_data = dataset.prepare_train_data()
-    test_data = dataset.get_test_data()
-    graph = dataset.get_graph()
