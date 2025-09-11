@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 from typing import Optional
+from torch.nn import functional as F
 
 class LightGCN(nn.Module):
     """ Class Wraps the LightGCN Model https://arxiv.org/pdf/2002.02126
@@ -148,4 +149,93 @@ class LightGCN(nn.Module):
         users_emb = all_users[user_ids]
         rating = self.f(torch.matmul(users_emb, all_items.t()))
         return rating
+
     
+class MGDCF(LightGCN):
+    """ Inherits from LightGCN, applies MGDCF message passing """
+    def __init__(self,
+                 users_count: int,
+                 items_count: int,
+                 graph: torch.Tensor,
+                 device: str,
+                 latent_dim: int,
+                 n_layers: int,
+                 alpha: float,
+                 beta: float,
+                 user_pretrained_weights: bool = False,
+                 pretrained_weights_path: Optional[str] = None,
+                 x_dropout_rate:float=0.2,
+                 z_dropout_rate:float=0.2):
+        
+        super().__init__(users_count,
+                         items_count,
+                         graph,
+                         device,
+                         latent_dim,
+                         n_layers,
+                         user_pretrained_weights,
+                         pretrained_weights_path)
+        
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = beta**n_layers + alpha * sum(beta**i for i in range(n_layers))
+        self.x_dropout = torch.nn.Dropout(p=x_dropout_rate)
+        self.z_dropout = torch.nn.Dropout(p=z_dropout_rate)
+
+    def propogate(self):
+        """
+        MGDCF-style propagation:
+        h_k = beta * A h_{k-1} + alpha * h_0
+        Final output: h_k / gamma
+        """
+        users_emb = self.user_embedding.weight
+        items_emb = self.item_embedding.weight
+        h0 = self.x_dropout(torch.cat([users_emb, items_emb], dim=0))
+        h = h0
+
+        for _ in range(self.n_layers):
+            Ah = torch.sparse.mm(self.Graph, h)
+            h = self.beta * Ah + self.alpha * h0
+
+        h = h / self.gamma
+        h = self.z_dropout(h)
+        users, items = torch.split(h, [self.users_count, self.items_count], dim=0)
+        return users, items
+
+    def compute_loss(self,
+                    user_ids,
+                    pos_item_ids,
+                    neg_item_ids):
+            """
+            user_ids:       Tensor [N]
+            pos_item_ids:   Tensor [N]
+            neg_item_ids:   Tensor [N, K]
+            """
+
+            all_users, all_items = self.propogate()  # get full user/item embeddings
+
+            users_emb = all_users[user_ids]                  # [N, D]
+            pos_emb = all_items[pos_item_ids]                # [N, D]
+            neg_emb = all_items[neg_item_ids]                # [N, K, D]
+
+            # Expand user embeddings to [N, K, D]
+            users_expanded = users_emb.unsqueeze(1).expand_as(neg_emb)  # [N, K, D]
+
+            # -------- POSITIVE SCORES --------
+            pos_scores = torch.sum(users_emb * pos_emb, dim=1, keepdim=True)  # [N, 1]
+
+            # -------- NEGATIVE SCORES --------
+            neg_scores = torch.sum(users_expanded * neg_emb, dim=2)  # [N, K]
+
+            # -------- CONCAT + CROSS ENTROPY --------
+            logits = torch.cat([pos_scores, neg_scores], dim=1)  # [N, 1 + K]
+            targets = torch.zeros(logits.size(0), dtype=torch.long, device=logits.device)  # positives at index 0
+
+            loss = F.cross_entropy(logits, targets, reduction='mean')
+
+            user_norm = users_emb.norm(p=2, dim=1).pow(2).sum()          # scalar
+            pos_item_norm = pos_emb.norm(p=2, dim=1).pow(2).sum()  # scalar
+            neg_item_norm = neg_emb.norm(p=2, dim=2).pow(2).sum()  # [N], then sum over all
+            reg_loss = 0.5 * (user_norm + pos_item_norm + neg_item_norm.sum()) / float(user_ids.size(0))
+
+            return reg_loss, loss
