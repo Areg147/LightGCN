@@ -1,0 +1,7 @@
+# Configuration for the LightGCN model
+model_name: "LightGCN"
+
+latent_dim: 64
+n_layers: 3
+use_pretrained_weights: false
+pretrained_weights_path: saved_models/checkpoints/...

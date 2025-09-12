@@ -1,0 +1,14 @@
+
+model_name: "MGDCF"
+
+# Common Hyperparameters
+latent_dim: 64
+n_layers: 3
+use_pretrained_weights: false
+pretrained_weights_path: saved_models/checkpoints/...
+
+# MGDCF-specific Hyperparameters
+alpha: 0.1
+beta: 0.8
+x_dropout_rate: 0.2
+z_dropout_rate: 0.2
