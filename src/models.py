@@ -104,16 +104,15 @@ class LightGCN(nn.Module):
         '''
         all_users, all_items = self.propogate()
 
-        users_emb = all_users[user_ids] # 3 by 64
-        pos_emb = all_items[pos_item_ids] # 3 by 64
-        neg_emb = all_items[neg_item_ids] # 3 by 64
+        users_emb = all_users[user_ids] 
+        pos_emb = all_items[pos_item_ids] 
+        neg_emb = all_items[neg_item_ids] 
 
         pos_scores = torch.mul(users_emb, pos_emb) # 3 by 2
         pos_scores = torch.sum(pos_scores, dim=1)
 
         neg_scores = torch.mul(users_emb, neg_emb)
         neg_scores = torch.sum(neg_scores, dim=1)
-
         bpr_loss = torch.mean(torch.nn.functional.softplus(neg_scores - pos_scores))
         return bpr_loss
     

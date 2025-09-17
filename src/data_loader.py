@@ -26,7 +26,7 @@ class RecSysDataset(Dataset):
                  add_self_loop: bool = False,
                  neg_per_pos:Optional[int]=None) -> None:
         
-        if neg_per_pos is None:
+        if neg_per_pos is None and is_train_data:
             raise ValueError("neg_per_pos must be set for training data")
         
         self.data_path = data_path
