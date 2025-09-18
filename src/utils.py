@@ -11,11 +11,12 @@ def ndcg_recall_precision_batch(user_preds:torch.Tensor,
     for N in top_ks:
         user_preds_k = user_preds[:, :N]
         preds_exp = user_preds_k.unsqueeze(2)           
-        gts_exp = user_gts.unsqueeze(1)                         
+        gts_exp = user_gts.unsqueeze(1)                  
         relevance = (preds_exp == gts_exp).any(dim=2).float()
-
+        
         # recall, precision
-        recall = relevance.sum(dim=1) / (user_gts != -1).sum(dim=1)
+        gt_counts = (user_gts != -1).sum(dim=1)
+        recall = torch.where(gt_counts > 0, relevance.sum(dim=1) / gt_counts, torch.zeros_like(gt_counts))
         precision =  relevance.sum(dim=1)/N
 
         positions = torch.arange(1, N + 1, device=device).float() 

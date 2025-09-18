@@ -49,7 +49,7 @@ class RecSysTrainer(pl.LightningModule):
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
         user_ids, pos_item_ids, neg_item_ids = batch[:, 0], batch[:, 1], batch[:, 2:]
         reg_loss, bpr_loss = self.model.compute_loss(
-            user_ids, pos_item_ids, neg_item_ids.squeeze(-1)
+            user_ids, pos_item_ids, neg_item_ids
         )
         loss = bpr_loss + self.config["reg_loss_weight"] * reg_loss
         self.log(
