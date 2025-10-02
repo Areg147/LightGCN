@@ -85,41 +85,41 @@ class RecSysTrainer(pl.LightningModule):
         optimizer = optimizer_cls(
             self.model.parameters(),
             lr=self.config["lr"],
-            weight_decay=self.config.get("weight_decay", 0.0),
+            weight_decay=self.config["scheduler_weight_decay"],
         )
-        scheduler_cfg = self.config.get("scheduler", None)
+        scheduler_cfg = self.config["scheduler"]
         if scheduler_cfg:
             sch_name = scheduler_cfg["name"].lower()
             scheduler_cls = SCHEDULER_REGISTRY[sch_name]
             if sch_name == "cosine":
                 scheduler = scheduler_cls(
-                    optimizer, T_max=scheduler_cfg.get("t_max", 10)
+                    optimizer, T_max=scheduler_cfg["t_max"]
                 )
             elif sch_name == "step":
                 scheduler = scheduler_cls(
                     optimizer,
-                    step_size=scheduler_cfg.get("step_size", 10),
-                    gamma=scheduler_cfg.get("gamma", 0.1),
+                    step_size=scheduler_cfg["step_size"],
+                    gamma=scheduler_cfg["gamma"],
                 )
             elif sch_name == "onecycle":
                 scheduler = scheduler_cls(
                     optimizer,
-                    max_lr=scheduler_cfg.get("max_lr", 0.01),
+                    max_lr=scheduler_cfg["max_lr"],
                     steps_per_epoch=len(self.train_dataloader()),
-                    epochs=self.config.get("max_epochs", 10),
+                    epochs=self.config["max_epochs"],
                 )
             elif sch_name == "reduce_on_plateau":
                 scheduler = scheduler_cls(
                     optimizer,
                     mode="max",
-                    factor=scheduler_cfg.get("factor", 0.1),
-                    patience=scheduler_cfg.get("patience", 5),
+                    factor=scheduler_cfg["factor"],
+                    patience=scheduler_cfg["patience"],
                 )
                 return {
                     "optimizer": optimizer,
                     "lr_scheduler": {
                         "scheduler": scheduler,
-                        "monitor": scheduler_cfg.get("monitor", "val_loss"),
+                        "monitor": scheduler_cfg["monitor"],
                         "interval": "epoch",
                         "frequency": 1,
                     },

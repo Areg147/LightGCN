@@ -66,13 +66,3 @@ class InferenceEngine:
         np.save(output_path, scores_numpy)
 
         print(f"✅ Success! Full score matrix saved to '{output_path}'.")
-
-# if __name__ == "__main__":
-#     import sys
-#     sys.path.append("./")
-#     from src.config import load_config
-#     model_config_path = "src/models_configs/kgin_config.yaml"
-#     model_inputs = torch.load("/Users/aregpetrosyan/Desktop/areg/LightGCN/data/dump/KnowledgeGraphDataset_model_input.pt")
-#     config = load_config(yaml_path=model_config_path, **model_inputs)
-#     engine = InferenceEngine(config)
-#     engine.precompute_and_save_all_scores("all_scores.npy")

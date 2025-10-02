@@ -133,10 +133,8 @@ class LightGCN(nn.Module):
             neg_emb = neg_emb.unsqueeze(1)  # [N, 1, D]
 
         users_expanded = users_emb.unsqueeze(1).expand_as(neg_emb)  # [N, K, D] 
-
         pos_scores = torch.mul(users_emb, pos_emb) # 3 by 2
         pos_scores = torch.sum(pos_scores, dim=1,keepdim=True)
-
         neg_scores = torch.mul(users_expanded, neg_emb)
         neg_scores = torch.sum(neg_scores, dim=2)
         bpr_loss = torch.mean(torch.nn.functional.softplus(neg_scores - pos_scores))
@@ -477,12 +475,10 @@ class GraphConv(nn.Module):
                 latent_emb,
                 edge_index,
                 edge_type,
-                interact_mat,
-                mess_dropout=True,
-                node_dropout=False):
+                interact_mat):
 
         """node dropout"""
-        if node_dropout:
+        if self.node_dropout_rate>0:
             edge_index, edge_type = self._edge_sampling(edge_index, edge_type, self.node_dropout_rate)
             interact_mat = self._sparse_dropout(interact_mat, self.node_dropout_rate)
 
@@ -493,9 +489,7 @@ class GraphConv(nn.Module):
             entity_emb, user_emb = self.convs[i](entity_emb, user_emb, latent_emb,
                                                  edge_index, edge_type, interact_mat,
                                                  self.weight, self.disen_weight_att)
-
-            """message dropout"""
-            if mess_dropout:
+            if self.dropout.p > 0:
                 entity_emb = self.dropout(entity_emb)
                 user_emb = self.dropout(user_emb)
             entity_emb = F.normalize(entity_emb)
@@ -517,9 +511,7 @@ class KGIN(nn.Module):
                  latent_dim: int,
                  n_layers: int,
                  n_factors: int,
-                 node_dropout: bool,
                  node_dropout_rate: float,
-                 mess_dropout: bool,
                  mess_dropout_rate: float,
                  ind: str,
                  edge_index,
@@ -543,8 +535,6 @@ class KGIN(nn.Module):
         self.sim_decay = sim_decay # for correlation 
         self.n_layers = n_layers
 
-        self.node_dropout = node_dropout
-        self.mess_dropout = mess_dropout
 
         self.device = device
         # data
@@ -571,9 +561,7 @@ class KGIN(nn.Module):
                              n_users=n_users,
                              n_relations=n_relations,
                              n_factors=n_factors,
-                             ind=ind,
-                             node_dropout_rate=node_dropout_rate,
-                             mess_dropout_rate=mess_dropout_rate)
+                             ind=ind)
         
 
         if user_pretrained_weights:
@@ -591,10 +579,8 @@ class KGIN(nn.Module):
                                                      self.latent_emb,
                                                      self.edge_index,
                                                      self.edge_type,
-                                                     self.interact_mat,
-                                                     mess_dropout=self.mess_dropout,
-                                                     node_dropout=self.node_dropout)
-        return entity_gcn_emb, user_gcn_emb, cor
+                                                     self.interact_mat)
+        return user_gcn_emb, entity_gcn_emb, cor
 
 
     def compute_loss(self, user, pos_item, neg_item):

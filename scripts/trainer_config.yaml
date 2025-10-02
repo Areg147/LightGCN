@@ -1,11 +1,10 @@
 # Core training setup
-lr: 0.01
+lr: 0.001
 batch_size: 64
 num_workers: 2
-max_epochs: 300
-weight_decay: 0.0001
-reg_loss_weight: 0.01
-top_k: [5, 10]  
+max_epochs: 1000
+scheduler_weight_decay: 0.0001
+top_k: [5, 10,20,100]  
 
 # Optimizer options: adam, adamw, sgd, rmsprop
 optimizer: adamw
@@ -35,19 +34,19 @@ scheduler:
 #   monitor: val_recall@10
 
 # Trainer-specific settings
-precision: 16             
-gradient_clip_val: 1.0
-accumulate_grad_batches: 2
+precision: 32             
+accumulate_grad_batches: 1
 experiment_name: "lightgcn_experiment"
-run_name: "cart_wishlist_pdp"
+run_name: "cart_wishlist_pdp_kgin"
 log_every_n_steps: 10
 check_val_every_n_epoch: 5
 
 
-neg_per_pos: 1
+neg_per_pos: 12
+normalization_type: "symmetric"
 add_self_loop: False
 monitor_metric: "val_recall_at_10"
 save_top_k: 1
 save_weights_only: True
 reload_dataloaders_every_n_epochs: 1
-log_computational_graph: True
+dump_model_inputs_data: True

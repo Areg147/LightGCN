@@ -79,9 +79,7 @@ class KGINConfig(BaseGraphModelsConfig):
     reg_decay: float
     sim_decay: float
     n_factors: int
-    node_dropout: bool
     node_dropout_rate: float
-    mess_dropout: bool
     mess_dropout_rate: float
     ind: str  # "distance" or "cosine"
 
@@ -102,9 +100,7 @@ class KGINConfig(BaseGraphModelsConfig):
             latent_dim=self.latent_dim,
             n_layers=self.n_layers,
             n_factors=self.n_factors,
-            node_dropout=self.node_dropout,
             node_dropout_rate=self.node_dropout_rate,
-            mess_dropout=self.mess_dropout,
             mess_dropout_rate=self.mess_dropout_rate,
             ind=self.ind,
             edge_index=self.edge_index,       

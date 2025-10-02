@@ -4,12 +4,12 @@ model_name: "MGDCF"
 # Common Hyperparameters
 latent_dim: 128
 n_layers: 3
-use_pretrained_weights: true
-pretrained_weights_path: /Users/aregpetrosyan/Desktop/areg/LightGCN/train_logs/checkpoints/lightgcn_experiment__cart_wishlist_pdp_areg/epoch=4-step=355.ckpt
+use_pretrained_weights: False
+pretrained_weights_path: train_logs/checkpoints/...
 
 # MGDCF-specific Hyperparameters
 alpha: 0.1
 beta: 0.8
-x_dropout_rate: 0.2
+x_dropout_rate: 0
 z_dropout_rate: 0.2
 reg_decay: 0.0001

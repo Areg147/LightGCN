@@ -131,7 +131,9 @@ if __name__ == "__main__":
         log_every_n_steps=train_configs["log_every_n_steps"],
         accelerator=device,
         check_val_every_n_epoch=train_configs["check_val_every_n_epoch"],
-        reload_dataloaders_every_n_epochs=train_configs["reload_dataloaders_every_n_epochs"]
+        reload_dataloaders_every_n_epochs=train_configs["reload_dataloaders_every_n_epochs"],
+        accumulate_grad_batches=train_configs["accumulate_grad_batches"],
+        precision=train_configs["precision"],
     )
     trainer_pl.fit(trainer)
 

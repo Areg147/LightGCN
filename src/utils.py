@@ -37,11 +37,28 @@ def ndcg_recall_precision_batch(user_preds:torch.Tensor,
 
     return metric_values
 
-
+# prety print util
 def print_colored_table(data, headers, colors):
-    rows = [(k, *v) if isinstance(v, tuple) else (k, v) for k, v in data.items()] if isinstance(data, dict) else data
+    if isinstance(data, dict):
+        rows = [
+            (k, *v) if isinstance(v, tuple) else (k, v)
+            for k, v in data.items()
+        ]
+    else:
+        rows = data
     str_rows = [[str(v) for v in row] for row in rows]
-    widths = [max(len(h), max(len(str_rows[i][j]) for i in range(len(str_rows)))) for j, h in enumerate(headers)]
-    print('\t'.join(colored(h.ljust(widths[i]), colors[i], attrs=['bold']) for i, h in enumerate(headers)))
+    widths = []
+    for j, h in enumerate(headers):
+        col_width = max(len(h), max(len(r[j]) for r in str_rows))
+        widths.append(col_width)
+    header = '\t'.join(
+        colored(h.ljust(widths[i]), colors[i], attrs=['bold'])
+        for i, h in enumerate(headers)
+    )
+    print(header)
     for row in str_rows:
-        print('\t'.join(colored(v.ljust(widths[i]), colors[i]) for i, v in enumerate(row)))
+        line = '\t'.join(
+            colored(v.ljust(widths[i]), colors[i])
+            for i, v in enumerate(row)
+        )
+        print(line)

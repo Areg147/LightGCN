@@ -134,7 +134,7 @@ class BaseUI_Interation_Dataset(Dataset):
         dataset_name = Path(self.data_path).parent.stem
         save_path = self.dump_dir / f"{dataset_name}.pt"
         torch.save(data, save_path)
-        print(f"User-item interaction data dumped to {save_path}")
+        print(f"User-item interaction data dumped to {save_path}\n\n")
     
     def get_models_necessary_input(self) -> dict:
         raise NotImplementedError("Child classes must implement get_models_necessary_data()")
@@ -201,7 +201,7 @@ class BipartiteGraphDataset(BaseUI_Interation_Dataset):
         if is_dump:
             save_path = self.dump_dir / f"BipartiteGraphDataset_model_input.pt"
             torch.save(final_data, save_path)
-            print(f"Model input dumped to {save_path}\n")
+            print(f"Model input dumped to {save_path}")
             self.dupm_user_item_data(user_item_matrix)
         return final_data
 
