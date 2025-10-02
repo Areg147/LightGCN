@@ -1,4 +1,5 @@
 import torch
+from termcolor import colored
 
 def ndcg_recall_precision_batch(user_preds:torch.Tensor,
                                 user_gts:torch.Tensor,
@@ -35,3 +36,12 @@ def ndcg_recall_precision_batch(user_preds:torch.Tensor,
         metric_values[f"precision_at_{N}"] = precision.mean()
 
     return metric_values
+
+
+def print_colored_table(data, headers, colors):
+    rows = [(k, *v) if isinstance(v, tuple) else (k, v) for k, v in data.items()] if isinstance(data, dict) else data
+    str_rows = [[str(v) for v in row] for row in rows]
+    widths = [max(len(h), max(len(str_rows[i][j]) for i in range(len(str_rows)))) for j, h in enumerate(headers)]
+    print('\t'.join(colored(h.ljust(widths[i]), colors[i], attrs=['bold']) for i, h in enumerate(headers)))
+    for row in str_rows:
+        print('\t'.join(colored(v.ljust(widths[i]), colors[i]) for i, v in enumerate(row)))

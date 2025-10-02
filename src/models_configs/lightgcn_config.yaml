@@ -1,0 +1,8 @@
+# Configuration for the LightGCN model
+model_name: "LightGCN"
+
+latent_dim: 64
+n_layers: 3
+reg_decay: 0.0001
+use_pretrained_weights: true
+pretrained_weights_path: train_logs/checkpoints/lightgcn_experiment__cart_wishlist_pdp/epoch=189-step=13490.ckpt

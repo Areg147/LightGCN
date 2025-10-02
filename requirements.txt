@@ -1,5 +1,11 @@
-numpy
-pandas
-scikit-learn
-torch
-matplotlib
+cppimport==22.8.2
+faiss_cpu==1.12.0
+mlflow==2.20.2
+mlflow_skinny==2.20.2
+numpy==2.3.3
+pytorch_lightning==2.5.1
+PyYAML==6.0.2
+scipy==1.16.2
+torch==2.2.2
+torchviz==0.0.3
+tqdm==4.67.1

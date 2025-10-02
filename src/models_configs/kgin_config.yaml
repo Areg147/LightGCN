@@ -1,0 +1,19 @@
+
+model_name: "KGIN"
+
+# Common Hyperparameters
+latent_dim: 128
+n_layers: 3
+use_pretrained_weights: true
+pretrained_weights_path: /Users/aregpetrosyan/Desktop/areg/LightGCN/train_logs/checkpoints/lightgcn_experiment__cart_wishlist_pdp_kgin/epoch=4-step=355.ckpt
+# KGIN-specific Hyperparameters
+reg_decay: 0.00001        # L2 regularization coefficient
+sim_decay: 0.0001        # correlation penalty coefficient
+n_factors: 4           # number of disentangled factors
+node_dropout: true
+node_dropout_rate: 0.5
+mess_dropout: true
+mess_dropout_rate: 0.1
+ind: "distance"        # correlation type: "distance" or "cosine"
+
+

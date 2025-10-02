@@ -48,10 +48,10 @@ class RecSysTrainer(pl.LightningModule):
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
         user_ids, pos_item_ids, neg_item_ids = batch[:, 0], batch[:, 1], batch[:, 2:]
-        reg_loss, bpr_loss = self.model.compute_loss(
+        
+        loss = self.model.compute_loss(
             user_ids, pos_item_ids, neg_item_ids
-        )
-        loss = bpr_loss + self.config["reg_loss_weight"] * reg_loss
+            )
         self.log(
             "train_loss",
             loss,
@@ -59,8 +59,6 @@ class RecSysTrainer(pl.LightningModule):
             prog_bar=False,
             batch_size=batch.size(0),
         )
-        grad_norm = torch.nn.utils.get_total_norm(self.model.parameters())
-        self.log("grad_norm", grad_norm, on_step=True, prog_bar=False)
         return loss
 
     def validation_step(self, batch: torch.Tensor, batch_idx: int) -> None:

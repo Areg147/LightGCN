@@ -1,19 +1,21 @@
-
+import sys
+sys.path.append("./")
 import torch
 import faiss
 import numpy as np
 import warnings
 from typing import Union
-from config import LightGCNConfig, MGDCFConfig
+from src.config import LightGCNConfig, MGDCFConfig, KGINConfig
 import os
+
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 class InferenceEngine:
     """A wrapper for fast inference, with FAISS search and bulk score precomputation."""
-    def __init__(self, config: Union[LightGCNConfig, MGDCFConfig]):
+    def __init__(self, config: Union[LightGCNConfig, MGDCFConfig, KGINConfig]):
         self.config = config
-        self.device = self.config.device
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = self.config.build_model().to(self.device)
         
         if self.config.use_pretrained_weights and self.config.pretrained_weights_path:
@@ -32,8 +34,11 @@ class InferenceEngine:
     @torch.no_grad()
     def _cache_embeddings_and_build_faiss(self):
         print("  > Caching final embeddings and building FAISS index...")
-
-        self.user_embeddings, self.item_embeddings = self.model.propogate()
+        propogated_out = self.model.propogate()
+        try:
+            self.user_embeddings, self.item_embeddings,_ = propogated_out 
+        except ValueError:
+            self.user_embeddings, self.item_embeddings = propogated_out
         item_embeddings_np = self.item_embeddings.cpu().numpy().astype('float32')
         self.faiss_index = faiss.IndexFlatL2(item_embeddings_np.shape[1])
         self.faiss_index.add(item_embeddings_np)
@@ -61,3 +66,13 @@ class InferenceEngine:
         np.save(output_path, scores_numpy)
 
         print(f"✅ Success! Full score matrix saved to '{output_path}'.")
+
+# if __name__ == "__main__":
+#     import sys
+#     sys.path.append("./")
+#     from src.config import load_config
+#     model_config_path = "src/models_configs/kgin_config.yaml"
+#     model_inputs = torch.load("/Users/aregpetrosyan/Desktop/areg/LightGCN/data/dump/KnowledgeGraphDataset_model_input.pt")
+#     config = load_config(yaml_path=model_config_path, **model_inputs)
+#     engine = InferenceEngine(config)
+#     engine.precompute_and_save_all_scores("all_scores.npy")

@@ -1,4 +1,5 @@
 import sys
+sys.path.append("./")
 import os
 import yaml
 import mlflow
@@ -7,10 +8,11 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import MLFlowLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torchviz import make_dot
-from src.data_loader import RecSysDataset
+from src.data_loader import BipartiteGraphDataset,KnowledgeGraphDataset
 from src.trainer import RecSysTrainer
 from src.config import load_config
 from src.utils import ndcg_recall_precision_batch
+import argparse
 
 
 def _load_from_yaml(path: str) -> dict:
@@ -19,60 +21,52 @@ def _load_from_yaml(path: str) -> dict:
     return config
 
 
-def _log_computational_graph_viz(
-    model: torch.nn.Module,
-    save_path: str = "lightgcn_graph"
-) -> None:
-    out = model.compute_loss(
-        user_ids=torch.tensor([0, 1, 2]),
-        pos_item_ids=torch.tensor([10, 20, 30]),
-        neg_item_ids=torch.tensor([40, 50, 60]),
-    )
-    dot = make_dot(out, params=dict(model.named_parameters()))
-    dot.render(save_path, format="png")
-
-
 def get_trainer_and_config(
     model_config_path: str,
+    model_name: str,
     trainer_config_path: str,
     train_data_path: str,
     val_data_path: str,
 ) -> tuple[RecSysTrainer, dict]:
+    
     trainer_config = _load_from_yaml(trainer_config_path)
     neg_per_pos = trainer_config.get("neg_per_pos")
     is_add_self_loop = trainer_config.get("add_self_loop")
+    normalization_type = trainer_config.get("normalization_type")
+    if model_name in ["lightgcn", "mgdcf"]: 
+        train_dataset = BipartiteGraphDataset(
+            data_path=train_data_path,
+            is_train_data=True,
+            add_self_loop=is_add_self_loop,
+            neg_per_pos=neg_per_pos,
+            normalization_type = normalization_type
+        )
+        val_dataset = BipartiteGraphDataset(
+            data_path=val_data_path,
+            is_train_data=False,
+            add_self_loop=is_add_self_loop,
+        )
+    elif model_name == "kgin":
+        kg_path = f"data/{args.dataset_name}/kg_final.txt"
+        train_dataset = KnowledgeGraphDataset(
+            kg_path = kg_path,
+            data_path=train_data_path,
+            is_train_data=True,
+            neg_per_pos=neg_per_pos,
+        )
+        val_dataset = KnowledgeGraphDataset(
+            data_path=val_data_path,
+            is_train_data=False,
+        )
+    else:
+        raise ValueError(f"Unsupported model name: {model_name}")
 
-    train_dataset = RecSysDataset(
-        data_path=train_data_path,
-        is_train_data=True,
-        add_self_loop=is_add_self_loop,
-        neg_per_pos=neg_per_pos,
-    )
-    users_count = train_dataset.num_users
-    items_count = train_dataset.num_items
-    graph = train_dataset.get_graph()
-
-    val_dataset = RecSysDataset(
-        data_path=val_data_path,
-        is_train_data=False,
-        add_self_loop=is_add_self_loop,
-    )
-
+    is_dump = trainer_config["dump_model_inputs_data"]
+    model_inputs = train_dataset.get_models_necessary_input(is_dump=is_dump)
     model = load_config(
         yaml_path=model_config_path,
-        users_count=users_count,
-        items_count=items_count,
-        graph=graph,
-    ).build_model()
+        **model_inputs).build_model()
 
-    if trainer_config.get("log_computational_graph", False):
-        _log_computational_graph_viz(
-            model=model,
-            save_path=(
-                f"train_logs/{trainer_config.get('experiment_name')}_"
-                f"{trainer_config.get('run_name')}_graph"
-            ),
-        )
 
     metric_calculator = ndcg_recall_precision_batch
     trainer = RecSysTrainer(
@@ -86,18 +80,24 @@ def get_trainer_and_config(
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset_name", type=str, required=True, help="Name of the dataset (folder under data/)")
+    parser.add_argument("--model_name", type=str, required=True, help="Model name (used for config path)")
+    args = parser.parse_args()
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model_name = "lightgcn"
-    model_config_path = f"src/{model_name}_config.yaml"
-    trainer_config_path = "scripts/trainer_config.yaml"
-    train_data_path = "data/train.txt"
-    val_data_path = "data/val.txt"
+
+    model_config_path = f"src/models_configs/{args.model_name}_config.yaml"
+    trainer_config_path = "scripts/trainer_config.yaml" 
+    train_data_path = f"data/{args.dataset_name}/train.txt"
+    val_data_path = f"data/{args.dataset_name}/val.txt"
 
     trainer, train_configs = get_trainer_and_config(
         model_config_path=model_config_path,
         trainer_config_path=trainer_config_path,
         train_data_path=train_data_path,
         val_data_path=val_data_path,
+        model_name=args.model_name
     )
 
     tracking_uri = "train_logs/logs"
@@ -131,9 +131,7 @@ if __name__ == "__main__":
         log_every_n_steps=train_configs["log_every_n_steps"],
         accelerator=device,
         check_val_every_n_epoch=train_configs["check_val_every_n_epoch"],
-        reload_dataloaders_every_n_epochs=train_configs[
-            "reload_dataloaders_every_n_epochs"
-        ],
+        reload_dataloaders_every_n_epochs=train_configs["reload_dataloaders_every_n_epochs"]
     )
     trainer_pl.fit(trainer)
 
